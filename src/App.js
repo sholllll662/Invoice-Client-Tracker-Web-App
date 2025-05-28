@@ -8,8 +8,8 @@ import Footer from "./components/Footer";
 // import AuthPage from "./pages/AuthPage";
 import { AuthProvider } from "./backend/AuthContext";
 import AuthForm from "./components/AuthForm";
-import PrivateRoute from "./components/PrivateRoute";
 import Dashboard from "./pages/Dashboard";
+import AddInvoice from "./pages/AddInvoice";
 
 function App() {
   return (
@@ -32,6 +32,7 @@ function App() {
           <Route path="/login" element={<AuthForm />} />
           <Route path="/dashboard" element={<Dashboard />} />
           {/* <Route path="/register" element={<AuthPage />} /> */}
+          <Route path="/add-invoice" element={<AddInvoice />} />
         </Routes>
       </Router>
     </AuthProvider>

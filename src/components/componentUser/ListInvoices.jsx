@@ -1,17 +1,10 @@
-import { useNavigate } from "react-router";
-import { useAuth } from "../backend/AuthContext";
+import { useAuth } from "../../backend/AuthContext";
 import { useEffect, useState } from "react";
 
-const Dashboard = () => {
-  const { user, logout, token } = useAuth();
-  const navigate = useNavigate();
+const ListInvoices = () => {
+  const { token } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [client, setClient] = useState([]);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
 
   useEffect(() => {
     const fetchProfileAndInvoice = async () => {
@@ -46,68 +39,78 @@ const Dashboard = () => {
     };
 
     fetchProfileAndInvoice();
-  }, [token, user]);
+  }, [token]);
+
+  const handleViewDetail = (id) => {
+    // Navigasi ke halaman detail atau tampilkan modal
+    console.log("Lihat detail invoice ID:", id);
+    // Misal: navigate(`/invoices/${id}`);
+  };
+
+  const handleEditInvoice = (id) => {
+    // Navigasi ke halaman edit atau tampilkan modal form
+    console.log("Edit invoice ID:", id);
+    // Misal: navigate(`/invoices/edit/${id}`);
+  };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Main Content */}
-      <main className="flex-1 bg-gray-100 p-8">
-        {/* Navbar */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-xl font-semibold">
-            Selamat datang, {user?.name || "User"}
-          </h1>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            Logout
-          </button>
-        </div>
+    <div className="flex-1">
+      {/* Invoice Table */}
+      <div className="bg-white shadow rounded p-6">
+        <h2 className="text-lg font-semibold mb-4">Daftar Invoice</h2>
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="px-4 py-2">ID</th>
+              <th className="px-4 py-2">Client</th>
+              <th className="px-4 py-2">Amount</th>
+              <th className="px-4 py-2">Status</th>
+              <th className="px-4 py-2">Aksi</th> {/* Tambah kolom aksi */}
+            </tr>
+          </thead>
+          <tbody>
+            {invoices.map((inv, index) => {
+              const clientData = client.find((c) => c.id === inv.client_id);
+              return (
+                <tr key={inv.id} className="border-b">
+                  <td className="px-4 py-2">{index + 1}</td>
+                  <td className="px-4 py-2">
+                    {clientData?.name || "Unknown Client"}
+                  </td>
 
-        {/* Invoice Table */}
-        <div className="bg-white shadow rounded p-6">
-          <h2 className="text-lg font-semibold mb-4">Daftar Invoice</h2>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="px-4 py-2">ID</th>
-                <th className="px-4 py-2">Client</th>
-                <th className="px-4 py-2">Amount</th>
-                <th className="px-4 py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv, index) => {
-                const clientData = client.find((c) => c.id === inv.client_id);
-                return (
-                  <tr key={inv.id} className="border-b">
-                    <td className="px-4 py-2">{index + 1}</td>
-                    <td className="px-4 py-2">
-                      {clientData?.name || "Unknown Client"}
-                    </td>
+                  <td className="px-4 py-2">
+                    Rp. {inv.amount.toLocaleString()}
+                  </td>
+                  <td
+                    className={`px-4 py-2 font-semibold ${
+                      inv.status === "Paid" ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {inv.status}
+                  </td>
 
-                    <td className="px-4 py-2">
-                      Rp. {inv.amount.toLocaleString()}
-                    </td>
-                    <td
-                      className={`px-4 py-2 font-semibold ${
-                        inv.status === "Paid"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
+                  <td className="px-4 py-2 space-x-2">
+                    <button
+                      onClick={() => handleViewDetail(inv.id)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
                     >
-                      {inv.status}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </main>
+                      Detail
+                    </button>
+                    <button
+                      onClick={() => handleEditInvoice(inv.id)}
+                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default ListInvoices;
