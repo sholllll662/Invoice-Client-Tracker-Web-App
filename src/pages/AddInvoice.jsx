@@ -1,9 +1,12 @@
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
 import { useEffect, useState } from "react";
 import { useAuth } from "../backend/AuthContext";
 
-const AddInvoice = () => {
+const AddInvoice = ({ mode = "add" }) => {
+  const { id } = useParams();
+  const invoiceid = id || null;
+
   const { token } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState([
@@ -21,6 +24,8 @@ const AddInvoice = () => {
     issue_date: "",
     due_date: "",
   });
+
+  const readOnly = mode === "view";
 
   // Fetch client list from API
   useEffect(() => {
@@ -44,6 +49,38 @@ const AddInvoice = () => {
     };
     fetchClients();
   }, [token]);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    return new Date(dateString).toISOString().split("T")[0];
+  };
+
+  useEffect(() => {
+    if ((mode === "edit" || mode === "view") && invoiceid) {
+      const fetchInvoice = async () => {
+        try {
+          const res = await fetch(
+            `http://localhost:8080/api/invoices/${invoiceid}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          const data = await res.json();
+
+          setForm({ client_id: data.client_id.toString() });
+          setNote(data.note || "");
+          setStatus(data.status || "");
+          setIssueDate(formatDate(data.issue_date));
+          setDueDate(formatDate(data.due_date));
+          setItems(data.items || []);
+        } catch (err) {
+          console.error("Error fetch invoice detail:", err);
+        }
+      };
+
+      fetchInvoice();
+    }
+  }, [mode, invoiceid, token]);
 
   const handleAddItem = () => {
     setItems([...items, { item_name: "", quantity: "", unit_price: "" }]);
@@ -73,8 +110,8 @@ const AddInvoice = () => {
 
     const data = {
       client_id: parseInt(form.client_id),
-      issue_date: new Date().toISOString().split("T")[0],
-      due_date: new Date().toISOString().split("T")[0],
+      issue_date: issueDate,
+      due_date: dueDate,
       status,
       note,
       items: items.map((item) => ({
@@ -95,12 +132,15 @@ const AddInvoice = () => {
       return;
     }
 
-    console.log("Data yang dikirim:", data);
-    console.log("Token:", token);
+    const endpoint =
+      mode === "edit"
+        ? `http://localhost:8080/api/invoices/${invoiceid}`
+        : "http://localhost:8080/api/invoices";
+    const method = mode === "edit" ? "PUT" : "POST";
 
     try {
-      const response = await fetch("http://localhost:8080/api/invoices", {
-        method: "POST",
+      const response = await fetch(endpoint, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -108,13 +148,10 @@ const AddInvoice = () => {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        throw new Error("Gagal mengirim invoice");
-      }
+      if (!response.ok) throw new Error("Gagal mengirim invoice");
 
-      const result = await response.json();
-      console.log("Invoice berhasil:", result);
-      alert("Invoice berhasil dibuat!");
+      // const result = await response.json();
+      alert(`Invoice berhasil di${mode === "edit" ? "ubah" : "buat"}!`);
       navigate("/dashboard");
     } catch (error) {
       console.error("Error:", error);
@@ -125,7 +162,13 @@ const AddInvoice = () => {
   return (
     <div className="min-h-screen bg-gray-100 p-4 sm:p-8">
       <nav className="flex justify-between items-center p-4 bg-blue-800 text-white rounded-md shadow">
-        <h1 className="text-lg sm:text-xl font-bold">Tambah Data Invoice</h1>
+        <h1 className="text-lg sm:text-xl font-bold">
+          {mode === "edit"
+            ? "Edit Invoice"
+            : mode === "view"
+            ? "Detail Invoice"
+            : "Tambah Invoice"}
+        </h1>
         <button
           onClick={handleBackDashboard}
           className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-md text-sm"
@@ -141,11 +184,9 @@ const AddInvoice = () => {
         <div className="space-y-10">
           {/* Profile Section */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Profile</h2>
-            <p className="text-sm text-gray-600">
-              This information will be displayed publicly so be careful what you
-              share.
-            </p>
+            <h2 className="text-lg font-semibold text-gray-800">
+              Data Invoice
+            </h2>
 
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
@@ -156,8 +197,9 @@ const AddInvoice = () => {
                   type="text"
                   value={form.client_id}
                   onChange={(e) =>
-                    handleFormChange("client_id", e.target.value)
+                    !readOnly && handleFormChange("client_id", e.target.value)
                   }
+                  disabled={readOnly}
                   className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
                 >
                   <option value="">-- Pilih Client --</option>
@@ -175,8 +217,9 @@ const AddInvoice = () => {
                 </label>
                 <textarea
                   value={note}
-                  onChange={(e) => setNote(e.target.value)}
+                  onChange={(e) => !readOnly && setNote(e.target.value)}
                   rows={3}
+                  readOnly={readOnly}
                   placeholder="Write a few sentences..."
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
                 />
@@ -206,6 +249,7 @@ const AddInvoice = () => {
                     onChange={(e) =>
                       handleChange(index, "item_name", e.target.value)
                     }
+                    readOnly={readOnly}
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
                   />
                 </div>
@@ -220,6 +264,7 @@ const AddInvoice = () => {
                     onChange={(e) =>
                       handleChange(index, "quantity", e.target.value)
                     }
+                    readOnly={readOnly}
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
                   />
                 </div>
@@ -229,31 +274,37 @@ const AddInvoice = () => {
                     Harga Item
                   </label>
                   <input
+                    value={item.unit_price}
                     onChange={(e) =>
                       handleChange(index, "unit_price", e.target.value)
                     }
+                    readOnly={readOnly}
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
                   />
                 </div>
                 {/* Tombol Hapus Item */}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveItem(index)}
-                  className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xl font-bold"
-                  title="Hapus Item"
-                >
-                  &times;
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(index)}
+                    className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xl font-bold"
+                    title="Hapus Item"
+                  >
+                    &times;
+                  </button>
+                )}
               </div>
             ))}
             <div className="flex justify-between items-end p-4 text-white ">
-              <button
-                type="button"
-                onClick={handleAddItem}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none"
-              >
-                Tambah Item
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={handleAddItem}
+                  className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none"
+                >
+                  Tambah Item
+                </button>
+              )}
             </div>
           </div>
 
@@ -271,6 +322,7 @@ const AddInvoice = () => {
                 name="issue_date"
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
+                readOnly={readOnly}
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
               />
             </div>
@@ -288,6 +340,7 @@ const AddInvoice = () => {
                 name="due_date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+                readOnly={readOnly}
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
               />
             </div>
@@ -302,11 +355,12 @@ const AddInvoice = () => {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
+                disabled={readOnly}
                 className="w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-sm shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
               >
                 <option value="">-- Pilih Status --</option>
-                <option value="unpaid">Unpaid</option>
-                <option value="paid">Paid</option>
+                <option value="Unpaid">Unpaid</option>
+                <option value="Paid">Paid</option>
               </select>
               <ChevronDownIcon className="absolute right-3 top-3 w-4 h-4 text-gray-500 pointer-events-none" />
             </div>
@@ -317,16 +371,27 @@ const AddInvoice = () => {
         <div className="mt-10 flex justify-end gap-4">
           <button
             type="button"
+            onClick={handleBackDashboard}
             className="text-sm font-medium text-gray-700 hover:underline"
           >
             Cancel
           </button>
-          <button
-            type="submit"
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
-          >
-            Save
-          </button>
+          {readOnly ? (
+            <button
+              type="button"
+              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 focus:ring focus:ring-indigo-300 focus:ring-opacity-50"
+              onClick={() => navigate(`/invoice/${invoiceid}/edit`)}
+            >
+              Edit
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className="bg-indigo-600 text-white px-4 py-2 rounded"
+            >
+              Save
+            </button>
+          )}
         </div>
       </form>
     </div>

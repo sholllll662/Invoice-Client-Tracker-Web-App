@@ -5,7 +5,7 @@ const Clients = () => {
   const navigate = useNavigate();
 
   const handleAddInvoice = () => {
-    navigate("/add-invoice");
+    navigate("/invoice/add");
   };
 
   return (

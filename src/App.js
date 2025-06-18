@@ -32,7 +32,16 @@ function App() {
           <Route path="/login" element={<AuthForm />} />
           <Route path="/dashboard" element={<Dashboard />} />
           {/* <Route path="/register" element={<AuthPage />} /> */}
-          <Route path="/add-invoice" element={<AddInvoice />} />
+          {/* <Route path="/add-invoice" element={<AddInvoice />} /> */}
+          <Route path="/invoice/add" element={<AddInvoice mode="add" />} />
+          <Route
+            path="/invoice/:id/view"
+            element={<AddInvoice mode="view" />}
+          />
+          <Route
+            path="/invoice/:id/edit"
+            element={<AddInvoice mode="edit" />}
+          />
         </Routes>
       </Router>
     </AuthProvider>

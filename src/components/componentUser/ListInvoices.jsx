@@ -1,7 +1,9 @@
 import { useAuth } from "../../backend/AuthContext";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const ListInvoices = () => {
+  const navigate = useNavigate();
   const { token } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [client, setClient] = useState([]);
@@ -41,21 +43,30 @@ const ListInvoices = () => {
     fetchProfileAndInvoice();
   }, [token]);
 
-  const handleViewDetail = (id) => {
-    // Navigasi ke halaman detail atau tampilkan modal
-    console.log("Lihat detail invoice ID:", id);
-    // Misal: navigate(`/invoices/${id}`);
-  };
+  const handlePreviewPDF = async (invoiceId) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/invoices/${invoiceId}/pdf`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-  const handleEditInvoice = (id) => {
-    // Navigasi ke halaman edit atau tampilkan modal form
-    console.log("Edit invoice ID:", id);
-    // Misal: navigate(`/invoices/edit/${id}`);
+      if (!response.ok) throw new Error("Gagal mengambil PDF");
+
+      const blob = await response.blob();
+      const pdfUrl = URL.createObjectURL(blob);
+      window.open(pdfUrl, "_blank");
+    } catch (error) {
+      console.error("Error saat preview PDF: ", error.message);
+    }
   };
 
   return (
     <div className="flex-1">
-      {/* Invoice Table */}
       <div className="bg-white shadow rounded p-6">
         <h2 className="text-lg font-semibold mb-4">Daftar Invoice</h2>
         <table className="w-full text-left">
@@ -65,7 +76,7 @@ const ListInvoices = () => {
               <th className="px-4 py-2">Client</th>
               <th className="px-4 py-2">Amount</th>
               <th className="px-4 py-2">Status</th>
-              <th className="px-4 py-2">Aksi</th> {/* Tambah kolom aksi */}
+              <th className="px-4 py-2">Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -91,16 +102,22 @@ const ListInvoices = () => {
 
                   <td className="px-4 py-2 space-x-2">
                     <button
-                      onClick={() => handleViewDetail(inv.id)}
+                      onClick={() => navigate(`/invoice/${inv.id}/view`)}
                       className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
                     >
                       Detail
                     </button>
                     <button
-                      onClick={() => handleEditInvoice(inv.id)}
+                      onClick={() => navigate(`/invoice/${inv.id}/edit`)}
                       className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm"
                     >
                       Edit
+                    </button>
+                    <button
+                      onClick={() => handlePreviewPDF(inv.id)}
+                      className="bg-green-400 hover:bg-green-600 text-white px-3 py-1 rounded text-sm"
+                    >
+                      Preview
                     </button>
                   </td>
                 </tr>
