@@ -1,0 +1,15 @@
+Update Code ke github
+git status
+git add .
+git commit -m "Fix Addinvoice dan Addclient"
+git push
+
+Upload Code baru ke GitHub
+git init
+git remote add origin https://github.com/username/Invoice-Backend-Go-Postgre.git
+(🔁 Jika sebelumnya sudah pernah menambahkan remote atau repo baru dan ingin mengganti:)
+git remote set-url origin https://github.com/username/Invoice-Backend-Go-Postgre.git
+git add .
+git commit -m "Initial commit"
+git branch -M main
+git push -u origin main / git push -u origin main --force (kalau ada readme nya)
